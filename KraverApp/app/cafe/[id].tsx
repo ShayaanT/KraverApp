@@ -2,6 +2,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { useVoucher } from '@/context';
 
 // Mock cafe data
 const CAFE_DATA: Record<string, any> = {
@@ -10,9 +11,9 @@ const CAFE_DATA: Record<string, any> = {
     location: 'Downtown',
     description: 'Artisanal coffee roasted to perfection',
     vouchers: [
-      { id: 'v1', name: 'Espresso', available: true },
-      { id: 'v2', name: 'Cappuccino', available: true },
-      { id: 'v3', name: 'Latte', available: false },
+      { id: 'v1', name: 'Espresso', amount: 4 },
+      { id: 'v2', name: 'Cappuccino', amount: 5 },
+      { id: 'v3', name: 'Latte', amount: 5 },
     ]
   },
   '2': { 
@@ -20,8 +21,8 @@ const CAFE_DATA: Record<string, any> = {
     location: 'East Village',
     description: 'Direct trade coffee at its finest',
     vouchers: [
-      { id: 'v4', name: 'Cold Brew', available: true },
-      { id: 'v5', name: 'Americano', available: true },
+      { id: 'v4', name: 'Cold Brew', amount: 6 },
+      { id: 'v5', name: 'Americano', amount: 4 },
     ]
   },
 };
@@ -29,7 +30,9 @@ const CAFE_DATA: Record<string, any> = {
 export default function CafeDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { isVoucherAvailable } = useVoucher();
   const cafe = CAFE_DATA[id as string] || CAFE_DATA['1'];
+  const cafeAvailable = isVoucherAvailable(id as string);
 
   return (
     <ThemedView style={styles.container}>
@@ -50,18 +53,26 @@ export default function CafeDetailScreen() {
               key={voucher.id}
               style={[
                 styles.voucherCard,
-                !voucher.available && styles.voucherCardDisabled
+                !cafeAvailable && styles.voucherCardDisabled
               ]}
-              onPress={() => voucher.available && router.push(`/voucher/${voucher.id}`)}
-              disabled={!voucher.available}
+              onPress={() => cafeAvailable && router.push({
+                pathname: '/voucher/[id]',
+                params: { 
+                  id: voucher.id,
+                  cafeId: id,
+                  cafeName: cafe.name,
+                  amount: voucher.amount.toString()
+                }
+              })}
+              disabled={!cafeAvailable}
             >
               <View style={styles.voucherInfo}>
                 <ThemedText style={styles.voucherName}>{voucher.name}</ThemedText>
                 <ThemedText style={styles.voucherStatus}>
-                  {voucher.available ? 'Available' : 'Used Today'}
+                  {cafeAvailable ? `Save $${voucher.amount}` : 'Used Today'}
                 </ThemedText>
               </View>
-              {voucher.available && (
+              {cafeAvailable && (
                 <View style={styles.redeemButton}>
                   <ThemedText style={styles.redeemText}>Redeem</ThemedText>
                 </View>

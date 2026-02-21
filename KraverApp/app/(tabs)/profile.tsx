@@ -2,32 +2,37 @@ import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { useAuth, useUser } from '@/context';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user, logout } = useAuth();
+  const { stats } = useUser();
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <ThemedText style={styles.avatarText}>JD</ThemedText>
+            <ThemedText style={styles.avatarText}>
+              {user?.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+            </ThemedText>
           </View>
-          <ThemedText type="title" style={styles.name}>John Doe</ThemedText>
-          <ThemedText style={styles.email}>john.doe@example.com</ThemedText>
+          <ThemedText type="title" style={styles.name}>{user?.name || 'User'}</ThemedText>
+          <ThemedText style={styles.email}>{user?.email || ''}</ThemedText>
         </View>
 
         <View style={styles.stats}>
           <View style={styles.statItem}>
-            <ThemedText type="subtitle">12</ThemedText>
+            <ThemedText type="subtitle">{stats.vouchersUsed}</ThemedText>
             <ThemedText style={styles.statLabel}>Vouchers Used</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <ThemedText type="subtitle">$48</ThemedText>
+            <ThemedText type="subtitle">${stats.totalSaved}</ThemedText>
             <ThemedText style={styles.statLabel}>Total Saved</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <ThemedText type="subtitle">8</ThemedText>
+            <ThemedText type="subtitle">{stats.vouchersRemaining}</ThemedText>
             <ThemedText style={styles.statLabel}>Remaining</ThemedText>
           </View>
         </View>
@@ -35,8 +40,10 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Membership</ThemedText>
           <View style={styles.membershipCard}>
-            <ThemedText style={styles.tierName}>Premium Tier</ThemedText>
-            <ThemedText style={styles.tierDetails}>20 vouchers/month</ThemedText>
+            <ThemedText style={styles.tierName}>{user?.tier.charAt(0).toUpperCase()}{user?.tier.slice(1)} Tier</ThemedText>
+            <ThemedText style={styles.tierDetails}>
+              {user?.tier === 'vip' ? 'Unlimited vouchers' : user?.tier === 'premium' ? '20 vouchers/month' : '5 vouchers/month'}
+            </ThemedText>
             <TouchableOpacity style={styles.upgradeButton}>
               <ThemedText style={styles.upgradeButtonText}>Upgrade to VIP</ThemedText>
             </TouchableOpacity>
@@ -45,7 +52,10 @@ export default function ProfileScreen() {
 
         <TouchableOpacity 
           style={styles.logoutButton}
-          onPress={() => router.replace('/(auth)/login')}
+          onPress={async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          }}
         >
           <ThemedText style={styles.logoutText}>Logout</ThemedText>
         </TouchableOpacity>

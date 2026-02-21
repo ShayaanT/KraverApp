@@ -3,15 +3,36 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { useVoucher, useUser } from '@/context';
 
 export default function VoucherRedemptionScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, cafeId, cafeName, amount } = useLocalSearchParams();
   const router = useRouter();
+  const { redeemVoucher } = useVoucher();
+  const { addActivity } = useUser();
   const [code, setCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
-  const handleRedeem = () => {
-    // TODO: Implement actual redemption logic with backend
-    if (code.length === 6) {
+  const handleRedeem = async () => {
+    if (code.length !== 6) {
+      Alert.alert('Error', 'Please enter a valid 6-digit code from the merchant.');
+      return;
+    }
+
+    try {
+      setIsRedeeming(true);
+      
+      // Redeem the voucher
+      await redeemVoucher(id as string, cafeId as string, code);
+      
+      // Add to user activity
+      await addActivity({
+        cafeId: cafeId as string,
+        cafeName: cafeName as string,
+        voucherName: 'Voucher', // You can pass this from params if needed
+        amount: parseFloat(amount as string) || 4,
+      });
+
       Alert.alert(
         'Success!',
         'Your voucher has been redeemed.',
@@ -22,8 +43,10 @@ export default function VoucherRedemptionScreen() {
           },
         ]
       );
-    } else {
-      Alert.alert('Error', 'Please enter a valid 6-digit code from the merchant.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to redeem voucher');
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
@@ -53,11 +76,13 @@ export default function VoucherRedemptionScreen() {
         </View>
 
         <TouchableOpacity 
-          style={[styles.redeemButton, code.length !== 6 && styles.redeemButtonDisabled]}
+          style={[styles.redeemButton, (code.length !== 6 || isRedeeming) && styles.redeemButtonDisabled]}
           onPress={handleRedeem}
-          disabled={code.length !== 6}
+          disabled={code.length !== 6 || isRedeeming}
         >
-          <ThemedText style={styles.redeemButtonText}>Confirm Redemption</ThemedText>
+          <ThemedText style={styles.redeemButtonText}>
+            {isRedeeming ? 'Redeeming...' : 'Confirm Redemption'}
+          </ThemedText>
         </TouchableOpacity>
 
         <View style={styles.warningCard}>
